@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>
+        JavaScript Loan Calculator
+    </title>
+    <style>
+        .output {
+            font-weight: bold;
+        }
+
+        #payment {
+            text-decoration: underline;
+        }
+
+        #graph {
+            border: solid black 1px;
+        }
+
+        th,
+        td {
+            vertical-align: top;
+        }
+    </style>
+</head>
+
+<body>
+<table>
+    <tr>
+        <th>Enter Loan Data:</th>
+        <td></td>
+        <th>Loan Balance, Cumulative Equity, and Interest Payments</th>
+    </tr>
+    <tr>
+        <td>Amount of the loan (￥):</td>
+        <td><input id="amount" onchange="calculate();"></td>
+        <td rowspan="8">
+            <canvas id="graph" width="400" height="250"></canvas>
+        </td>
+    </tr>
+    <tr>
+        <td>Amount interest (%):</td>
+        <td><input id="apr" onchange="calculate();"></td>
+    </tr>
+    <tr>
+        <td>Repayment period (years):</td>
+        <td><input id="years" onchange="calculate();"></td>
+    </tr>
+</table>
+</body>
+
+
+<script>
+    "use strict";
+    function calculate() {
+        var amount = document.getElementById("amount");
+        var apr = document.getElementById("apr");
+        var payment = document.getElementById("payment");
+        var total = document.getElementById("total");
+        var years = document.getElementById("years");
+        var zipcode = document.getElementById("zipcode");
+
+        var principal = parseFloat(amount.value);
+        var interest = parseFloat(apr.value) / 100 / 12;
+        var payments = parseFloat(years.value) * 12;
+        //TODO
+
+        if (isFinite(monthly)) {
+            payment.innerHTML = monthly.toFixed(2);
+            //TODO
+
+            // Another js functions user-defined
+            //save data, for next visit
+            save(amount.value, apr.value, years.value, zipcode.value);
+            try {
+// Another js functions user-defined
+                getLenders(amount.value, apr.value, years.value, zipcode.value);
+            }
+            catch (e) {
+                //ignore
+            }
+
+            //show
+            chart(principal, interest, monthly, payments)
+        }
+    }
+
+    function save(amount, apr, years, zipcode) {
+        if (window.localStorage) {
+            localStorage.loan_amount = amount;
+            //TODO
+        }
+    }
+
+    window.onload = function () {
+        if(window.localStorage && localStorage.loan_amount){
+            document.getElementById("amount").value = localStorage.loan_amount;
+            //TODO
+        }
+    };
+
+    //send user input to server scripts
+    function getLenders(amount,apr,years,zipcode) {
+        if(!window.XMLHttpRequest)return;
+
+        var ad = document.getElementById("lenders");
+        if(!ad)return;
+
+        var url = "getLenders.php" +
+                "?amt=" + encodeURIComponent(apr) +
+                "&apr=" + encodeURIComponent(years) +
+                "&zip=" + encodeURIComponent(zipcode);
+        var req = new XMLHttpRequest();
+        req.open("GET",url);
+        req.send(null); //no zhengwen
+
+        //before response
+        req.onreadystatechange = function () {
+            if(req.readyState == 4 && req.status == 200){
+                var response = req.responseText;    //string
+                var lenders = JSON.parse(response);
+
+                var list = "";
+                    for(var i = 0; i < lenders.length; i++){
+                        list += "<li><a href='" + lenders[i].url + "'>" + lenders[i].name + "</a>";
+                }
+
+                ad.innerHTML = "<ul>" + list + "</ul>";
+            }
+        }
+    }
+
+
+    function chart(principal, interest, monthly, payments) {
+        var graph = document.getElementById("graph");
+
+        graph.width = graph.width;//clear and reset canvas 画布
+
+        if(arguments.length == 0 || !graph.getContext) return;
+
+        var g = graph.getContext("2d");
+        var width = graph.width;
+        var height = graph.height;
+
+        function paymentToX(n) {
+            return n*width/payments;
+        }
+        function amountToY(a) {
+            return height - (a*height/(monthly*payments*1.05));
+        }
+
+        g.moveTo(paymentToX(0),amountToY(0));   //从左下方开始
+        g.lineTo(paymentToX(payments),amountToY(monthly*payments)); //到右上方
+
+        g.lineTo(paymentToX(payments),amountToY(0)); //再到右下方
+
+        g.closePath();
+
+        g.fillStyle = "#f88";
+        g.fill();// 填充矩形
+        g.font = "bold 12px sans-serif";
+        g.fillText("Total Interest Payments",20,20);
+
+
+        var equity = 0;
+        g.beginPath();
+        g.moveTo(paymentToX(0),amountToY(0));
+        for(var p = 1; p<=payments; p++){
+            var thisMonthsInterest = (principal - equity) * interest;
+            equity += (monthly - thisMonthsInterest);
+            g.lineTo(paymentToX(p),amountToY(equity));
+        }
+
+        //TODO
+    }
+
+
+</script>
+</html>
